@@ -55,7 +55,8 @@ app.use(cors({
       callback(null, true);
     } else {
       logger.warn({ origin, allowed, userId: 'system', route: 'cors' }, 'CORS rejected origin - not in CORS_ORIGIN allowlist');
-      callback(new Error('Not allowed by CORS'));
+      // status 403 → errorHandler answers 403 (client error), not 500.
+      callback(Object.assign(new Error('Not allowed by CORS'), { status: 403, expose: true }));
     }
   },
   credentials: true,

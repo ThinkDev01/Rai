@@ -84,6 +84,9 @@ One error handler at the end of the Express middleware chain. All thrown errors 
 
 **Graceful shutdown**
 On SIGTERM (Docker stop, K8s pod eviction), close the DB pool and finish in-flight requests before exiting. Without this, requests get cut mid-execution in containerized deployments.
+- ✓ **Done 2026-10-21:** `server.ts` now runs `server.close()` (drain in-flight requests) → `pool.end()`, with a hard 8s cap.
+  - **Was:** pool closed only, without draining requests.
+  - The same path runs on an `uncaughtException`, then exits `1` so the container restarts clean.
 
 **Trust proxy**
 Set `app.set('trust proxy', 1)` when running behind Nginx or any load balancer. Without it, rate limiting and IP-based logic sees the proxy IP — everyone shares the same bucket.
