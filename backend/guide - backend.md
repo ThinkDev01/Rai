@@ -126,7 +126,19 @@ Per-seat subscriptions with a swappable provider. Product rules → `Guide/guide
 ## Response envelope & errors
 - Every response: `{ "success": bool, "data": ..., "error": "" }`.
 - Validate inputs in the **controller** (plain if-checks, no validation lib) → `400` with a clear message.
-- Status codes: 200/201, 400, 401, 403, 404, 409, 410, 500 (+ 502 for SES). `errorHandler` catches uncaught errors → 500.
+- Status codes: 200/201, 400, 401, 403, 404, 409, 410, 413, 500 (+ 502 for SES).
+- **`errorHandler`** (last middleware) catches errors that reach Express:
+  - **Errors carrying a 4xx `status`** keep it, and the caller gets a clear message:
+    - malformed JSON → `400`
+    - body over the limit → `413`
+    - CORS-rejected origin → `403`
+    - These are logged at `warn`.
+  - **Everything else** → `500` "Internal server error" (no internals leaked), logged at `error` with the stack.
+  - **Was:** every error → `500`, including bad client input.
+- **Process-level crashes** (`server.ts`):
+  - **`uncaughtException`:** logged at `fatal`, then a graceful shutdown (stop accepting, drain in-flight, close pool; hard 8s cap), exit `1`. Docker's `restart: always` brings up a clean process.
+    - **Was:** logged and kept running in an unknown state.
+  - **`unhandledRejection`:** still logged and kept alive.
 - IDs: **UUIDv7** for users/orgs/invites; **BIGSERIAL** ints for projects/sprints/tickets/comments.
 
 ## Logging

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { X, Download, FileQuestion } from '@/lib/icons';
 import { formatBytes } from '@/lib/uploads';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 interface AttachmentPreviewModalProps {
   name: string;
@@ -31,6 +32,10 @@ function loadMammoth(): Promise<MammothApi> {
       if (win.mammoth) { resolve(win.mammoth); return; }
       const s = document.createElement('script');
       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+      // TODO(security): add `s.integrity = 'sha512-…'` (SRI) or bundle mammoth
+      // via npm, so a compromised CDN can't run code in our origin.
+      s.crossOrigin = 'anonymous';
+      s.referrerPolicy = 'no-referrer';
       s.onload = () => (win.mammoth ? resolve(win.mammoth) : reject(new Error('mammoth unavailable')));
       s.onerror = () => reject(new Error('mammoth failed to load'));
       document.head.appendChild(s);
@@ -135,7 +140,9 @@ export function AttachmentPreviewModal({ name, size, mimeType, url, downloadUrl,
           .then(r => r.arrayBuffer())
           .then(buf => mammoth.convertToHtml({ arrayBuffer: buf })),
       )
-      .then(r => { if (!cancelled) setDocxHtml(r.value); })
+      // mammoth does NOT sanitize (a crafted .docx can carry javascript: links),
+      // so clean its output before it ever reaches dangerouslySetInnerHTML.
+      .then(r => { if (!cancelled) setDocxHtml(sanitizeHtml(r.value)); })
       .catch(() => { if (!cancelled) setDocxError(true); });
     return () => { cancelled = true; };
   }, [isDocx, url]);
@@ -225,7 +232,7 @@ export function AttachmentPreviewModal({ name, size, mimeType, url, downloadUrl,
       body = (
         <div
           className="flex-1 overflow-auto px-6 py-4 text-sm leading-relaxed text-text"
-          // mammoth output is sanitized (scripts stripped) — same as the prototype.
+          // Safe: docxHtml is already passed through sanitizeHtml (allowlist).
           dangerouslySetInnerHTML={{ __html: docxHtml }}
         />
       );

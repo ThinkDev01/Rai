@@ -43,7 +43,7 @@ frontend/
 ├── hooks/                 ← TanStack Query hooks (tickets, projects, sprints, reports, comments, team, search, my-work, domain-peers, deleted-orgs, notifications)
 ├── store/                 ← Zustand: auth.store, ui.store, theme.store
 ├── providers/             ← AuthProvider (hydrates /me), QueryProvider
-├── lib/                   ← api, cognito-client, env, routes, errors, dates, role/sprint/project/text utils, icons, messages, toastQueue, …
+├── lib/                   ← api, cognito-client, env, routes, errors, dates, role/sprint/project/text utils, icons, messages, toastQueue, sanitizeHtml, …
 ├── content/               ← centralized copy: marketing.ts, placeholders.ts, notifications.ts, emails/
 └── types/                 ← api.types.ts (entities), auth.types.ts (user/role/membership)
 ```
@@ -155,6 +155,7 @@ User-facing strings (marketing, placeholders, emails) live in `content/`, **not 
 | hardcode hex / colors | Tailwind theme tokens (docs repo `dev-standards.md`) |
 | hand-roll query keys | use the `*Keys` helpers |
 | `console.log` | `logger` from `@/lib/logger` (see `guide - logging.md`) |
+| `dangerouslySetInnerHTML` with untrusted HTML (e.g. mammoth DOCX output) | pass it through `sanitizeHtml` from `@/lib/sanitizeHtml` first |
 
 ## Env setup
 ```bash
