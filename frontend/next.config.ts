@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  output: 'standalone',  // produces minimal self-contained build for Docker
+  // 'standalone' = minimal self-contained build for our Docker image. Vercel
+  // packages Next.js itself (and sets VERCEL=1 during its builds); forcing
+  // standalone there breaks its post-build step (missing next-server.js.nft.json).
+  output: process.env.VERCEL ? undefined : 'standalone',
   // Allow LAN-IP origins (mobile-on-same-Wi-Fi testing) + ngrok tunnels.
   // The 192.168.* / 10.* / 172.16-31.* patterns cover every standard
   // private subnet a home router or office network might hand out, so we

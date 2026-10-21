@@ -681,7 +681,11 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 Compose reads `frontend/.env` automatically for the build-arg interpolation. Any later env change = rebuild (see reload model above).
 
-**Vercel:** connect repo → paste env vars in UI → auto-deploy on push.
+**Vercel (frontend only):** connect repo → paste env vars in UI → auto-deploy on push.
+- **Import:** on vercel.com/new, import the **frontend** app as a single project. Root Directory = `frontend`, preset Next.js. Don't import `backend`; it stays on AWS.
+- **`output: 'standalone'`** is skipped automatically on Vercel (`next.config.ts` checks `VERCEL`). Docker builds still produce standalone.
+  - **Was:** always standalone, which broke Vercel's post-build step (`ENOENT … next-server.js.nft.json`).
+- **Env:** `NEXT_PUBLIC_*` values are baked in at build time, so redeploy after any change. Add the Vercel URL to the backend's `CORS_ORIGIN`.
 
 ---
 
