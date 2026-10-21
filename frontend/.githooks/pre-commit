@@ -1,0 +1,20 @@
+#!/bin/sh
+# Auto-fix the lock so you never think about it.
+#
+# When a commit changes package.json (i.e. you added/removed/updated a dep),
+# regenerate package-lock.json in Linux (node:20 — the env CodeBuild uses) and
+# re-stage it, so the committed lock always passes CI's `npm ci`. A plain
+# `npm install` on Windows produces a lock missing Linux-only native deps, which
+# breaks CI — this removes that footgun entirely.
+#
+# Commits that don't touch package.json skip this instantly (no Docker needed).
+if git diff --cached --name-only | grep -q '^package\.json$'; then
+  echo "pre-commit: package.json changed → regenerating package-lock.json in Linux …"
+  if ! node scripts/fix-lock.mjs; then
+    echo "✖ pre-commit: lock regeneration failed. Is Docker running?"
+    echo "  Start Docker Desktop and commit again (the lock must be built in Linux to be CI-safe)."
+    exit 1
+  fi
+  git add package-lock.json
+  echo "✓ pre-commit: package-lock.json regenerated in Linux and staged."
+fi

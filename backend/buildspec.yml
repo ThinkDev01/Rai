@@ -1,0 +1,119 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Rai Backend — CodeBuild buildspec
+#
+# This is the ONE script CodeBuild runs on every push. It gates the build:
+# install → static check → tests → dependency audit → docker build → image scan
+# → push to ECR. ANY step failing kills the build, so a bad image never ships.
+#
+# WHO OWNS WHAT:
+#   - This file + Dockerfile  → us (dev). We know the build/test commands.
+#   - CodeBuild env vars below → devops sets them in the CodeBuild project:
+#       AWS_ACCOUNT_ID, AWS_DEFAULT_REGION, ECR_REPO (e.g. rai-backend)
+#   - Everything after ECR (SSM deploy, EC2, CloudWatch) → devops.
+# ─────────────────────────────────────────────────────────────────────────────
+version: 0.2
+
+env:
+  variables:
+    # Trivy image scan + npm audit fail the build on these severities. Zero
+    # tolerance: HIGH and CRITICAL both hard-stop the build. The Dockerfile runs
+    # `apk upgrade` to proactively clear recurring OS-package CVEs so this gate
+    # stays green without manual babysitting; JS-dep CVEs are fixed by bumping
+    # the offending package (see esbuild override in package.json).
+    SEVERITY: "HIGH,CRITICAL"
+
+phases:
+  # 1. Toolchain + dependencies ------------------------------------------------
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing dependencies (exact lockfile)..."
+      - npm ci
+      - echo "Installing Trivy (image vulnerability scanner)..."
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+  # 2. Code-level gates (cheap, run BEFORE we build an image) -------------------
+  pre_build:
+    commands:
+      # --- Static check (stands in for ESLint until ESLint is added) ---
+      - echo "Type-checking (tsc)..."
+      - npm run build
+
+      # --- Create test environment file ---
+      - echo "Creating .env.test from .env.test.example..."
+      - cp .env.test.example .env.test
+
+      # --- Local PostgreSQL for integration tests ---
+      # Uses DB_USER, DB_PASSWORD, DB_PORT from .env.test.
+      # Tests will create/drop DB_NAME themselves.
+      - echo "Starting PostgreSQL test container..."
+      - |
+        set -a
+        . ./.env.test
+        set +a
+        
+        docker run -d \
+          --name postgres-test \
+          -e POSTGRES_USER="$DB_USER" \
+          -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+          -e POSTGRES_DB="postgres" \
+          -p "$DB_PORT:5432" \
+          postgres:16
+
+        echo "Waiting for PostgreSQL to be ready..."
+        for i in $(seq 1 30); do
+          if docker exec postgres-test pg_isready -U "$DB_USER" -d postgres; then
+            echo "PostgreSQL is ready."
+            break
+          fi
+          echo "Waiting for PostgreSQL... attempt $i"
+          sleep 2
+        done
+
+      # --- Unit / integration tests ---
+      # The v2 critical-path suite lives in tests/v2-api.test.ts. It needs a
+      # local Postgres — devops must add a postgres service (or an rai-ci test
+      # DB) to the CodeBuild project and provide a backend/.env.test pointing
+      # DB_HOST at it (see Guide/dev-testing.md §0 + §10). --passWithNoTests keeps
+      # the gate green until that DB is wired; then the suite runs for real.
+      - echo "Running backend tests..."
+      - npx vitest run tests/v2-api.test.ts
+
+      # --- Dependency vulnerability audit (hard gate on high + critical) ---
+      - echo "Auditing dependencies..."
+      - npm audit --audit-level=high
+
+      # --- ECR login (needed before push) ---
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - REPO_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO"
+      # Tag the image with the git commit sha so every build is traceable.
+      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}"
+
+  # 3. Build the production image ----------------------------------------------
+  build:
+    commands:
+      - echo "Building Docker image..."
+      - docker build -t "$REPO_URI:$IMAGE_TAG" -t "$REPO_URI:latest" .
+
+  # 4. Scan the image, then push ------------------------------------------------
+  post_build:
+    commands:
+      # --- Image vulnerability scan (hard gate on high + critical) ---
+      - echo "Scanning image with Trivy..."
+      - trivy image --exit-code 1 --severity "$SEVERITY" --ignore-unfixed "$REPO_URI:$IMAGE_TAG"
+
+      # --- Push only if every gate above passed ---
+      - echo "Pushing image to ECR..."
+      - docker push "$REPO_URI:$IMAGE_TAG"
+      - docker push "$REPO_URI:latest"
+
+      # --- Hand-off artifact for the deploy stage (devops consumes this) ---
+      # - printf '[{"name":"rai-backend","imageUri":"%s"}]' "$REPO_URI:$IMAGE_TAG" > imagedefinitions.json
+      - echo "Build complete."
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/deploy_container.sh

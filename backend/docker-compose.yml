@@ -1,0 +1,22 @@
+# Local dev compose — Postgres only (hybrid setup: DB in Docker,
+# backend + frontend run in local terminals). Matches .env.example creds.
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: rai-postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rai_user
+      POSTGRES_PASSWORD: rai_password
+      POSTGRES_DB: rai_v2
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rai_user -d rai_v2"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres_data:

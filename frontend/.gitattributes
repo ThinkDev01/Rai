@@ -1,0 +1,5 @@
+# Keep shell hooks and build scripts LF-only so they run correctly on Linux/CI
+# and on other machines regardless of the committer's OS line-ending settings.
+.githooks/*     text eol=lf
+*.sh            text eol=lf
+*.mjs           text eol=lf

@@ -1,0 +1,29 @@
+# ────────────────────────────────────────────────────────────────────────────
+# Root .gitignore — Rai monorepo (docs + backend + frontend + mobile)
+# ────────────────────────────────────────────────────────────────────────────
+
+# Environment secrets — never commit actual env files.
+# Templates (.env.example, .env.staging, .env.production) ARE safe to commit
+# because they hold placeholders only; they're explicitly NOT in this list.
+.env
+.env.local
+
+# Claude — local machine-specific settings (personal, never shared)
+.claude/settings.local.json
+
+# Editor / OS
+backend/.env
+frontend/.env.local
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dependencies (defensive — folders ignored above, but in case of stray installs)
+node_modules/
+
+# Logs
+*.log
+
+# Large archives
+frontend.zip

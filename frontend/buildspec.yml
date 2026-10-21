@@ -1,0 +1,92 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Rai Frontend — CodeBuild buildspec
+#
+# Same gate pipeline as the backend: install → static check → tests → audit →
+# docker build → image scan → push to ECR. Any step failing kills the build.
+#
+# WHO OWNS WHAT:
+#   - This file + Dockerfile  → us (dev).
+#   - CodeBuild env vars below → devops sets them in the CodeBuild project:
+#       AWS_ACCOUNT_ID, AWS_DEFAULT_REGION, ECR_REPO (e.g. rai-frontend),
+#       and every NEXT_PUBLIC_* below (baked into the client bundle at build).
+#   - Everything after ECR (SSM deploy, EC2, CloudWatch) → devops.
+#
+# IMPORTANT: NEXT_PUBLIC_* are baked at BUILD time (Dockerfile builder stage),
+# not at runtime. They must be passed as --build-arg here, or the client bundle
+# ships with empty values. .env is dockerignored, so these are the only source.
+# ─────────────────────────────────────────────────────────────────────────────
+version: 0.2
+
+env:
+  variables:
+    # Trivy image scan + npm audit fail the build on these severities. Zero
+    # tolerance: HIGH and CRITICAL both hard-stop the build. The Dockerfile runs
+    # `apk upgrade` to proactively clear recurring OS-package CVEs so this gate
+    # stays green without manual babysitting; JS-dep CVEs are fixed by bumping
+    # the offending package (see esbuild bump in package.json).
+    SEVERITY: "HIGH,CRITICAL"
+
+phases:
+  # 1. Toolchain + dependencies ------------------------------------------------
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing dependencies (exact lockfile)..."
+      - npm ci
+      - echo "Installing Trivy (image vulnerability scanner)..."
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+  # 2. Code-level gates ---------------------------------------------------------
+  pre_build:
+    commands:
+      # --- Static check (typecheck; stands in for ESLint until ESLint is added) ---
+      - echo "Type-checking (tsc --noEmit)..."
+      - npm run typecheck
+
+      # --- Tests ---
+      # No frontend test runner yet (Playwright E2E is planned — see
+      # Guide/dev-testing.md). Placeholder keeps the gate slot visible.
+      - 'echo "No frontend tests configured yet — skipping (planned: Playwright E2E)."'
+
+      # --- Dependency audit (hard gate on high + critical) ---
+      - echo "Auditing dependencies..."
+      - npm audit --audit-level=high
+
+      # --- ECR login ---
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
+      - REPO_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO"
+      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-latest}"
+
+  # 3. Build the production image (next build runs inside the Dockerfile) -------
+  build:
+    commands:
+      - echo "Building Docker image..."
+      - |
+        docker build \
+          --target production \
+          --build-arg NEXT_PUBLIC_BACKEND_URL="$NEXT_PUBLIC_BACKEND_URL" \
+          --build-arg NEXT_PUBLIC_COGNITO_REGION="$NEXT_PUBLIC_COGNITO_REGION" \
+          --build-arg NEXT_PUBLIC_COGNITO_POOL_ID="$NEXT_PUBLIC_COGNITO_POOL_ID" \
+          --build-arg NEXT_PUBLIC_COGNITO_CLIENT_ID="$NEXT_PUBLIC_COGNITO_CLIENT_ID" \
+          --build-arg NEXT_PUBLIC_COGNITO_DOMAIN="$NEXT_PUBLIC_COGNITO_DOMAIN" \
+          --build-arg NEXT_PUBLIC_OAUTH_SIGNIN_URL="$NEXT_PUBLIC_OAUTH_SIGNIN_URL" \
+          --build-arg NEXT_PUBLIC_OAUTH_SIGNOUT_URL="$NEXT_PUBLIC_OAUTH_SIGNOUT_URL" \
+          -t "$REPO_URI:$IMAGE_TAG" -t "$REPO_URI:latest" .
+
+  # 4. Scan, then push ----------------------------------------------------------
+  post_build:
+    commands:
+      - echo "Scanning image with Trivy..."
+      - trivy image --exit-code 1 --severity "$SEVERITY" --ignore-unfixed "$REPO_URI:$IMAGE_TAG"
+      - echo "Pushing image to ECR..."
+      - docker push "$REPO_URI:$IMAGE_TAG"
+      - docker push "$REPO_URI:latest"
+      - printf '[{"name":"rai-frontend","imageUri":"%s"}]' "$REPO_URI:$IMAGE_TAG" > imagedefinitions.json
+      - echo "Build complete."
+
+artifacts:
+  files:
+    - appspec.yml
+    - scripts/**/*

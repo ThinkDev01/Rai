@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(/c/Users/Diptanshu/Downloads/Work/Code/Rai/.env:*)",
+      "Bash(/c/Users/Diptanshu/Downloads/Work/Code/Rai/.gitignore:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker compose:*)",
+      "Read(//c/Users/Diptanshu/Downloads/Work/Code/Rai/**)",
+      "Bash(find . -iname \"buildspec*\" -not -path \"*/node_modules/*\")",
+      "Bash(git --no-pager diff modules/auth/cognito-auth.service.ts)",
+      "Bash(npm run *)",
+      "Bash(cp .env.test.example .env.test)",
+      "Bash(docker run *)",
+      "Bash(npx vitest *)",
+      "Bash(docker rm *)",
+      "Bash(git check-ignore *)",
+      "Bash(git --no-pager log -1 --oneline)",
+      "Bash(git --no-pager log origin/main..HEAD --oneline)",
+      "Skill(schedule)"
+    ]
+  }
+}

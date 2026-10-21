@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_blue">#0052CC</color>
+    <!-- Bold splash: blue background with a white logo. -->
+    <color name="splash_bg">#0052CC</color>
+    <!-- Launcher adaptive-icon background stays white (blue logo on white). -->
+    <color name="ic_launcher_background">#FFFFFF</color>
+</resources>

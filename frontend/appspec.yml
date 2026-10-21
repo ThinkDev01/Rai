@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Rai Frontend — CodeDeploy AppSpec (EC2/on-prem deployment)
+#
+# CodeDeploy's counterpart to buildspec.yml. buildspec builds + pushes the image
+# to ECR; CodeDeploy then runs the lifecycle hook below on the EC2 host to pull
+# that image and swap the running container.
+#
+#   GitHub → CodePipeline → CodeBuild (buildspec.yml → ECR)
+#          → CodeDeploy (THIS file → scripts/deploy_container.sh) → EC2
+#
+# WHO OWNS WHAT:
+#   - This file + scripts/deploy_container.sh + Dockerfile → us (dev).
+#   - The CodeDeploy app, deployment group, IAM service role, and the EC2
+#     CodeDeploy agent → devops.
+#
+# NOTE: version is 0.0 (CodeDeploy AppSpec schema), NOT 0.2 (that's buildspec).
+# The two files use different, unrelated version numbers — don't unify them.
+# ─────────────────────────────────────────────────────────────────────────────
+version: 0.0
+os: linux
+
+# No `files:` block — the deployable artifact lives in ECR, not in this bundle.
+# CodeDeploy only needs to run the swap script on the host.
+hooks:
+  # The container pull + swap + health-check all happen here. The script is
+  # idempotent: it stops/removes any existing container first, so a re-run or a
+  # rollback redeploy is safe. ApplicationStart (not AfterInstall) so it runs
+  # after the bundle is in place and reports the real start/validate result.
+  ApplicationStart:
+    - location: scripts/deploy_container.sh
+      timeout: 300
+      runas: root

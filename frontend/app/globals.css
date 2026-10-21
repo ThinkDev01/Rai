@@ -1,0 +1,348 @@
+@import "tailwindcss";
+
+/* Bind Tailwind's `dark:` variant to our `.dark` class on <html> (toggled by
+   the theme-init script + theme store), instead of the v4 default which keys
+   off the OS `prefers-color-scheme`. Required for class-based theming. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  ─────────────────────────────────────────────
+  RAI — GLOBAL THEME
+  Single source of truth for all design tokens.
+  To retheme the entire app, change values here only.
+  Never hardcode colors, fonts, or radius in components.
+  ─────────────────────────────────────────────
+*/
+
+@theme {
+  /* ── Typography ─────────────────────────── */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI',
+               'Roboto', 'Helvetica Neue', sans-serif;
+
+  /* ── Brand / Primary (Atlassian Blue) ────── */
+  --color-primary:        #0052CC;
+  --color-primary-hover:  #0065FF;
+  --color-primary-subtle: #DEEBFF;
+  --color-primary-text:   #FFFFFF;
+
+  /* ── Text ────────────────────────────────── */
+  --color-text:            #172B4D;
+  --color-text-subtle:     #6B778C;
+  --color-text-placeholder:#97A0AF;
+  --color-text-disabled:   #C1C7D0;
+  --color-text-inverse:    #FFFFFF;
+  --color-text-link:       #0052CC;
+
+  /* ── Surfaces ────────────────────────────── */
+  --color-surface:         #F4F5F7;
+  --color-surface-raised:  #FFFFFF;
+  --color-surface-sunken:  #EBECF0;
+  --color-surface-overlay: #FFFFFF;
+
+  /* ── Borders ─────────────────────────────── */
+  --color-border:          #DFE1E6;
+  --color-border-subtle:   #EBECF0;
+  --color-border-focus:    #4C9AFF;
+
+  /* ── Status ──────────────────────────────── */
+  --color-success:         #36B37E;
+  --color-success-subtle:  #E3FCEF;
+  --color-warning:         #FFAB00;
+  --color-warning-subtle:  #FFFAE6;
+  --color-danger:          #DE350B;
+  --color-danger-subtle:   #FFEBE6;
+  --color-info:            #0052CC;
+  --color-info-subtle:     #DEEBFF;
+
+  /* ── Ticket types ────────────────────────── */
+  --color-epic:   #6554C0;
+  --color-story:  #00B8D9;
+  --color-task:   #0052CC;
+  --color-bug:    #DE350B;
+
+  /* ── Priority ────────────────────────────── */
+  --color-priority-critical: #DE350B;
+  --color-priority-high:     #FF5630;
+  --color-priority-medium:   #FFAB00;
+  --color-priority-low:      #36B37E;
+  --color-priority-lowest:   #0065FF;
+}
+
+/* ── Dark mode token overrides ──────────────── */
+/* All components use CSS vars, so overriding here is enough — no component changes needed */
+.dark {
+  --color-primary:         #4C9AFF;
+  --color-primary-hover:   #85B8FF;
+  --color-primary-subtle:  #0C2340;
+  --color-primary-text:    #FFFFFF;
+
+  --color-text:            #E6ECF2;
+  --color-text-subtle:     #8B96A5;
+  --color-text-placeholder:#55637A;
+  --color-text-disabled:   #3D4E63;
+  --color-text-inverse:    #172B4D;
+  --color-text-link:       #4C9AFF;
+
+  --color-surface:         #161B27;
+  --color-surface-raised:  #1E2535;
+  --color-surface-sunken:  #111520;
+  --color-surface-overlay: #1E2535;
+
+  --color-border:          #2C3549;
+  --color-border-subtle:   #232B3D;
+  --color-border-focus:    #4C9AFF;
+
+  --color-success:         #2ECC87;
+  --color-success-subtle:  #0D2B1E;
+  --color-warning:         #FFAB00;
+  --color-warning-subtle:  #2B2000;
+  --color-danger:          #FF5630;
+  --color-danger-subtle:   #2B0D00;
+  --color-info:            #4C9AFF;
+  --color-info-subtle:     #0C2340;
+
+  --color-epic:   #8777D9;
+  --color-story:  #00C7E6;
+  --color-task:   #4C9AFF;
+  --color-bug:    #FF5630;
+
+  --color-priority-critical: #FF5630;
+  --color-priority-high:     #FF7452;
+  --color-priority-medium:   #FFAB00;
+  --color-priority-low:      #2ECC87;
+  --color-priority-lowest:   #4C9AFF;
+}
+
+/* ── Base styles ────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+/* Reserve scrollbar space ALWAYS, even when the page doesn't need to scroll.
+   Without this, filtering / collapsing / expanding any list that toggles
+   page height across the viewport boundary causes a ~17px horizontal shift
+   on Windows (and ~15px on macOS with "show scrollbars: always"): the
+   scrollbar appears or disappears, the document gets wider/narrower, and
+   every centered element jumps. `stable` reserves the gutter without
+   rendering the scrollbar when there's nothing to scroll.
+
+   Set on <html> so it covers the whole document viewport. `both-edges`
+   would mirror the gutter on the opposite side too; we only need one side. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Smooth in-page anchor scrolling (e.g. docs sidebar → section jumps).
+   Gated the same way as the landing-page animations below — reduced-motion
+   users get the instant native jump instead. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbars — minimal, hover-amplified ─────────────────────────────────
+   Direction: keep scrollbars discreet at rest so they don't compete with
+   content; widen + darken on hover so they're discoverable when the user
+   reaches for them. Two tiers:
+     - default              4px, faint thumb (border-subtle)
+     - .scrollbar-subtle    3px, even fainter — for sidebar lists / chips
+
+   `scrollbar-width: thin` covers Firefox + modern Edge (their scrollbar
+   doesn't honor pixel widths); WebKit gets the explicit pixel rules.
+   ──────────────────────────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-subtle) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 999px;
+  transition: background 120ms ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+}
+
+/* Ultra-slim variant for chrome surfaces (sidebar lists, popovers).
+   3px at rest is the smallest pixel size where the thumb still renders
+   cleanly on hi-DPI displays without blurring. */
+.scrollbar-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-subtle::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+.scrollbar-subtle::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  transition: background 120ms ease;
+}
+.scrollbar-subtle:hover {
+  scrollbar-color: var(--color-border-subtle) transparent;
+}
+.scrollbar-subtle:hover::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+}
+.scrollbar-subtle::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+}
+
+/*
+  ─────────────────────────────────────────────
+  LANDING PAGE — ANIMATIONS
+  GPU-only (transform/opacity). No width/height/top/left animation.
+  All animations gated behind `prefers-reduced-motion: no-preference`
+  so accessibility users get the static layout.
+  ─────────────────────────────────────────────
+*/
+
+/* Floating gradient orb in the hero background.
+   Drifts slowly in a figure-8 — purely decorative, low CPU. */
+@keyframes orb-drift {
+  0%   { transform: translate3d(0,     0,     0) scale(1); }
+  25%  { transform: translate3d(40px,  -30px, 0) scale(1.05); }
+  50%  { transform: translate3d(-20px, 30px,  0) scale(0.95); }
+  75%  { transform: translate3d(-40px, -10px, 0) scale(1.02); }
+  100% { transform: translate3d(0,     0,     0) scale(1); }
+}
+
+/* Slow gradient hue shift for the hero accent — the brand-color glow
+   breathes between primary and a slightly warmer tone. */
+@keyframes hue-breathe {
+  0%, 100% { filter: hue-rotate(0deg);   opacity: 0.55; }
+  50%      { filter: hue-rotate(-25deg); opacity: 0.75; }
+}
+
+/* Headline staggered word fade-up. Applied with --i custom prop for stagger. */
+@keyframes word-rise {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0,     0); }
+}
+
+/* Subtle vertical lift used by Reveal sections when they scroll into view. */
+@keyframes section-rise {
+  from { opacity: 0; transform: translate3d(0, 24px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0,     0); }
+}
+
+/* Kanban card drift — cards "settle" into their column slot on mount loop. */
+@keyframes card-settle {
+  0%   { transform: translate3d(0, -8px, 0); opacity: 0; }
+  60%  { transform: translate3d(0, 2px,  0); opacity: 1; }
+  100% { transform: translate3d(0, 0,    0); opacity: 1; }
+}
+
+/* Cursor blink for the workflow "typing" effect. */
+@keyframes caret-blink {
+  0%, 60%  { opacity: 1; }
+  61%, 100%{ opacity: 0; }
+}
+
+/* Marquee for the feature-strip horizontal scroll. Composited via transform. */
+@keyframes marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Pulse used on small status dots / "live" indicators. */
+@keyframes soft-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.85; }
+  50%      { transform: scale(1.1); opacity: 1; }
+}
+
+/* Sheen sweep across the primary CTA button on hover. */
+@keyframes sheen {
+  0%   { transform: translate3d(-120%, 0, 0) skewX(-20deg); }
+  100% { transform: translate3d(220%,  0, 0) skewX(-20deg); }
+}
+
+/* Feedback nudge — playful pop-in: rises from the corner with a springy
+   overshoot so it feels like it "bounces" into place rather than sliding flatly. */
+@keyframes nudge-pop {
+  0%   { transform: translate3d(0, 28px, 0) scale(0.92); opacity: 0; }
+  60%  { transform: translate3d(0, -5px, 0) scale(1.02); opacity: 1; }
+  100% { transform: translate3d(0,  0,   0) scale(1);    opacity: 1; }
+}
+
+/* Feedback nudge icon — a quick double wiggle to draw the eye, then rests. */
+@keyframes nudge-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20%      { transform: rotate(-13deg); }
+  40%      { transform: rotate(10deg); }
+  60%      { transform: rotate(-6deg); }
+  80%      { transform: rotate(3deg); }
+}
+
+/* Utility classes consumed by marketing components. The `motion-safe` prefix
+   keeps reduced-motion users on a static layout — animations never run. */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-orb        { animation: orb-drift 18s ease-in-out infinite, hue-breathe 9s ease-in-out infinite; will-change: transform, opacity; }
+  .anim-orb-slow   { animation: orb-drift 26s ease-in-out infinite reverse; will-change: transform; }
+  .anim-word       { animation: word-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 80ms); }
+  .anim-card       { animation: card-settle 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: calc(var(--i, 0) * 140ms); }
+  .anim-pulse-dot  { animation: soft-pulse 1.6s ease-in-out infinite; }
+  .anim-caret      { animation: caret-blink 1s steps(1, end) infinite; }
+  .anim-marquee    { animation: marquee-scroll 38s linear infinite; }
+
+  /* Feedback nudge: springy pop-in for the card, delayed wiggle for the icon. */
+  .anim-nudge      { animation: nudge-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; will-change: transform, opacity; }
+  .anim-nudge-icon { animation: nudge-wiggle 0.7s ease-in-out 0.45s 2 both; transform-origin: 50% 65%; }
+
+  /* Reveal-on-scroll: components add `.reveal` to a wrapper and toggle
+     `.is-visible` via IntersectionObserver. Pre-state is invisible so the
+     section never flashes its un-animated form. */
+  .reveal { opacity: 0; transform: translate3d(0, 24px, 0); transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1); will-change: opacity, transform; }
+  .reveal.is-visible { opacity: 1; transform: translate3d(0, 0, 0); }
+
+  /* Card hover-lift — used by feature cards. GPU-only (transform + shadow). */
+  .lift { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease; }
+  .lift:hover { transform: translate3d(0, -4px, 0); }
+
+  /* CTA sheen — sweeping highlight on hover. */
+  .cta-sheen { position: relative; overflow: hidden; }
+  .cta-sheen::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    transform: translate3d(-120%, 0, 0) skewX(-20deg);
+    pointer-events: none;
+  }
+  .cta-sheen:hover::after { animation: sheen 0.9s ease-out forwards; }
+}
+
+/* Reduced-motion fallback — show content without any movement, instantly. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* Hero background grid — used as a subtle backdrop pattern.
+   Pure CSS, no image. Two perpendicular gradients form the grid. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right,  var(--color-border-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-border-subtle) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}

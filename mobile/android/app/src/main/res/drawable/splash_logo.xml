@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- White Rai mark for the (blue) splash background. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M29,43 A13,13 0 0 1 55,43 L55,67 A13,13 0 0 1 29,67 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M59,43 A13,13 0 1 0 85,43 A13,13 0 1 0 59,43 Z" />
+</vector>

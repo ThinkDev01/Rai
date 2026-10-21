@@ -1,0 +1,11 @@
+-- Raise the per-seat price ₹50 → ₹129 / seat / month.
+--
+-- The `plans` table is the single source of price: the app reads
+-- price_per_seat_inr for display, the one-time order amount, and the
+-- Maximum-Quantity-Billing seat math. This runs once (tracked in
+-- schema_migrations), so it won't clobber a later in-table edit.
+--
+-- ⚠ The recurring Razorpay PLAN (RAZORPAY_PLAN_ID) carries its OWN amount in the
+-- Razorpay dashboard — set that plan to ₹129/seat too so the auto-renew charge
+-- matches what the app displays.
+UPDATE plans SET price_per_seat_inr = 129 WHERE name = 'Standard';

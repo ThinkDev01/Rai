@@ -1,0 +1,27 @@
+# Frontend prod compose — runs ONLY the Next.js container.
+#   • NEXT_PUBLIC_* are passed as BUILD args: Next bakes them into the client
+#     bundle at build time, so changing them needs `docker compose build`, not
+#     a restart. The ${...} values are read by Compose from the .env file in
+#     this directory automatically.
+#   • Port bound to 127.0.0.1 so Next is reachable ONLY via nginx.
+services:
+  app:
+    build:
+      context: .
+      target: production
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
+        NEXT_PUBLIC_COGNITO_REGION: ${NEXT_PUBLIC_COGNITO_REGION}
+        NEXT_PUBLIC_COGNITO_POOL_ID: ${NEXT_PUBLIC_COGNITO_POOL_ID}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${NEXT_PUBLIC_COGNITO_CLIENT_ID}
+        NEXT_PUBLIC_COGNITO_DOMAIN: ${NEXT_PUBLIC_COGNITO_DOMAIN}
+        NEXT_PUBLIC_OAUTH_SIGNIN_URL: ${NEXT_PUBLIC_OAUTH_SIGNIN_URL}
+        NEXT_PUBLIC_OAUTH_SIGNOUT_URL: ${NEXT_PUBLIC_OAUTH_SIGNOUT_URL}
+    container_name: rai-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    # No CloudWatch for the frontend (by design): client logs live in the user's
+    # browser and never reach CloudWatch, and there's little server-side frontend
+    # logging worth shipping. Backend is the single CloudWatch source. Next server
+    # logs stay in `docker logs` via the default driver.

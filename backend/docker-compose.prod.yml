@@ -1,0 +1,30 @@
+# Backend prod compose — API container only (Postgres lives on RDS).
+#   • .env is MOUNTED, not baked. Edit .env on the host then
+#     `docker compose -f docker-compose.prod.yml restart api` to apply —
+#     no rebuild. (env_file would need a full recreate to reload.)
+#   • Code changes still need a rebuild: `... up -d --build`.
+#   • Port bound to 127.0.0.1 so the API is reachable ONLY via nginx, never
+#     directly from the internet.
+services:
+  api:
+    build:
+      context: .
+    container_name: rai-api
+    restart: always
+    volumes:
+      - ./.env:/app/.env:ro
+    ports:
+      - "4000:4000"
+    # Ship container stdout straight to CloudWatch via the awslogs driver.
+    # This sends each log line AS-IS (no Docker json-file `{"log":…,"stream":…}`
+    # wrapper), so a JSON log line lands in CloudWatch as a clean, field-parsable
+    # event. Requires the EC2 instance role to allow CloudWatch Logs
+    # (CreateLogGroup, CreateLogStream, PutLogEvents). Clean output ALSO needs
+    # ENVIRONMENT=prod in .env so the app emits JSON (not the dev pretty-printer).
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-south-2
+        awslogs-group: backend-logs
+        awslogs-create-group: "true"
+        awslogs-stream: rai-api

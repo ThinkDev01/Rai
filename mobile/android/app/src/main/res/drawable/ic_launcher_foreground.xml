@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Rai mark: rounded capsule (left) + circle dot (upper right), brand blue.
+         Drawn within the adaptive-icon safe zone (~ x,y in 21..87). -->
+    <path
+        android:fillColor="#0052CC"
+        android:pathData="M29,43 A13,13 0 0 1 55,43 L55,67 A13,13 0 0 1 29,67 Z" />
+    <path
+        android:fillColor="#0052CC"
+        android:pathData="M59,43 A13,13 0 1 0 85,43 A13,13 0 1 0 59,43 Z" />
+</vector>

@@ -1,0 +1,12 @@
+#!/bin/sh
+# Validate the lock in Linux ONLY when this push changes dependencies — keeps
+# docs/code pushes instant and Docker-free. When package.json / package-lock.json
+# change, verify-lock.mjs runs `npm ci` in node:20 (the env CodeBuild uses) so a
+# Windows-generated lock can't break CI's install. Fix failures: npm run lock:fix
+base=$(git rev-parse --verify --quiet origin/main)
+if [ -n "$base" ]; then
+  if [ -z "$(git diff --name-only "$base" HEAD -- package.json package-lock.json)" ]; then
+    exit 0
+  fi
+fi
+node scripts/verify-lock.mjs || exit 1

@@ -1,0 +1,12 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <!-- Splash / launch background (Android < 12). Shows the Rai logo on a
+             white background while the app initializes; app content draws over it. -->
+        <item name="android:windowBackground">@drawable/splash_screen</item>
+    </style>
+
+</resources>
